@@ -60,11 +60,11 @@ def main():
     feature_dim = clip_model.visual.output_dim
     preprocess = targetpad_transform(1.25, input_dim)
 
-    # extract and save cirr features
-    cirr_val_dataset = CIRRDataset('val', preprocess)
-    extract_and_save_index_features(cirr_val_dataset, clip_model, feature_dim, 'cirr_val')
-    cirr_test_dataset = CIRRDataset('test1', preprocess)
-    extract_and_save_index_features(cirr_test_dataset, clip_model, feature_dim, 'cirr_test')
+    # # extract and save cirr features
+    # cirr_val_dataset = CIRRDataset('val', preprocess)
+    # extract_and_save_index_features(cirr_val_dataset, clip_model, feature_dim, 'cirr_val')
+    # cirr_test_dataset = CIRRDataset('test1', preprocess)
+    # extract_and_save_index_features(cirr_test_dataset, clip_model, feature_dim, 'cirr_test')
 
     # extract and save fashionIQ features
     dress_types = ['dress', 'toptee', 'shirt']

@@ -23,13 +23,15 @@ from model import Combiner
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = server_base_path / 'uploaded_files'
 
-if torch.cuda.is_available():
-    device = torch.device("cuda")
-    data_type = torch.float16
-else:
-    device = torch.device("cpu")
-    data_type = torch.float32
+# if torch.cuda.is_available():
+#     device = torch.device("cuda")
+#     data_type = torch.float16
+# else:
+#     device = torch.device("cpu")
+#     data_type = torch.float32
 
+device = torch.device("cpu")
+data_type = torch.float32
 
 @app.route('/')
 def choice():
@@ -326,9 +328,9 @@ def get_image(image_name: str, dim: Optional[int] = None, gt: Optional[str] = No
     """
 
     # Check whether the image comes from CIRR or FashionIQ dataset
-    if image_name in cirr_name_to_relpath:  #
-        image_path = server_base_path / 'cirr_dataset' / f'{cirr_name_to_relpath[image_name]}'
-    elif image_name in fashion_index_names:
+    # if image_name in cirr_name_to_relpath:  #
+    #     image_path = server_base_path / 'cirr_dataset' / f'{cirr_name_to_relpath[image_name]}'
+    if image_name in fashion_index_names:
         image_path = server_base_path / 'fashionIQ_dataset' / 'images' / f"{image_name}.jpg"
     else:  # Search for an uploaded image
         for iter_path in app.config['UPLOAD_FOLDER'].rglob('*'):
@@ -369,8 +371,8 @@ def _load_assets():
     p = Process(target=delete_uploaded_images)
     p.start()
 
-    # load CIRR assets ---------------------------------------------------------------------------------------
-    load_cirr_assets()
+    # # load CIRR assets ---------------------------------------------------------------------------------------
+    # load_cirr_assets()
 
     # load FashionIQ assets ------------------------------------------------------------------------------
     load_fashionIQ_assets()
@@ -385,9 +387,9 @@ def _load_assets():
     fashionIQ_combiner = torch.hub.load(server_base_path, source='local', model='combiner', dataset='fashionIQ')
     fashionIQ_combiner = torch.jit.script(fashionIQ_combiner).type(data_type).to(device).eval()
 
-    global cirr_combiner
-    cirr_combiner = torch.hub.load(server_base_path, source='local', model='combiner', dataset='cirr')
-    cirr_combiner = torch.jit.script(cirr_combiner).type(data_type).to(device).eval()
+    # global cirr_combiner
+    # cirr_combiner = torch.hub.load(server_base_path, source='local', model='combiner', dataset='cirr')
+    # cirr_combiner = torch.jit.script(cirr_combiner).type(data_type).to(device).eval()
 
 
 def load_fashionIQ_assets():
