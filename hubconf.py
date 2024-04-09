@@ -5,7 +5,9 @@ from torch import nn
 
 from model import Combiner
 
+#cirr combiner url
 CIRR_URL = "https://www.dropbox.com/s/cdesqz7yincaq8g/cirr_combiner.pth?dl=1"
+#fashionIQ combiner url
 FASHIONIQ_URL = "https://www.dropbox.com/s/tra1no8ionus3lk/fashionIQ_combiner.pth?dl=1"
 
 

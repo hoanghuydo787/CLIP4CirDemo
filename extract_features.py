@@ -67,12 +67,13 @@ def main():
     # extract_and_save_index_features(cirr_test_dataset, clip_model, feature_dim, 'cirr_test')
 
     # extract and save fashionIQ features
-    dress_types = ['dress', 'toptee', 'shirt']
+    # dress_types = ['dress', 'toptee', 'shirt']
+    dress_types = ['general']
     for dress_type in dress_types:
         val_dataset = FashionIQDataset('val', [dress_type], preprocess)
         extract_and_save_index_features(val_dataset, clip_model, feature_dim, f'fashionIQ_val_{dress_type}')
-        test_dataset = FashionIQDataset('test', [dress_type], preprocess)
-        extract_and_save_index_features(test_dataset, clip_model, feature_dim, f'fashionIQ_test_{dress_type}')
+        # test_dataset = FashionIQDataset('test', [dress_type], preprocess)
+        # extract_and_save_index_features(test_dataset, clip_model, feature_dim, f'fashionIQ_test_{dress_type}')
 
 
 if __name__ == '__main__':

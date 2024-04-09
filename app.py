@@ -15,7 +15,12 @@ import torch
 from flask import Flask, send_file, url_for
 from flask import render_template, request, redirect
 from torchvision.transforms.functional import resize
-from werkzeug.utils import secure_filename
+# to sanitize the filename before storing it directly on the filesystem 
+# never trust user input
+from werkzeug.utils import secure_filename 
+import requests
+from urllib.parse import urlparse
+import base64
 
 from data_utils import targetpad_resize, targetpad_transform, server_base_path, data_path
 from model import Combiner
@@ -23,15 +28,19 @@ from model import Combiner
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = server_base_path / 'uploaded_files'
 
-# if torch.cuda.is_available():
-#     device = torch.device("cuda")
-#     data_type = torch.float16
-# else:
-#     device = torch.device("cpu")
-#     data_type = torch.float32
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+    data_type = torch.float16
+else:
+    device = torch.device("cpu")
+    data_type = torch.float32
 
-device = torch.device("cpu")
-data_type = torch.float32
+# device = torch.device("cpu")
+# data_type = torch.float32
+
+# operations are not implemented for the 'torch.float16' data type
+# so we need to set the default tensor type to 'torch.FloatTensor' aka 'torch.float32'
+# torch.set_default_tensor_type(torch.FloatTensor)
 
 @app.route('/')
 def choice():
@@ -193,7 +202,8 @@ def compute_fashionIQ_results(caption: str, combiner: Combiner, n_retrieved: int
         for iter_path in app.config['UPLOAD_FOLDER'].rglob('*'):
             if iter_path.name == reference_name:
                 image_path = iter_path
-                dress_type = image_path.parent.name
+                # dress_type = image_path.parent.name
+                dress_type = 'general' # temporary solution
                 break
         else:
             raise ValueError()
@@ -227,6 +237,13 @@ def compute_fashionIQ_results(caption: str, combiner: Combiner, n_retrieved: int
         else:
             index_features = fashionIQ_val_shirt_index_features
             index_names = fashionIQ_val_shirt_index_names
+    elif dress_type == "general":
+        if target_name == "":
+            index_names = fashionIQ_general_index_names
+            index_features = fashionIQ_general_index_features
+        else:
+            index_features = fashionIQ_val_general_index_features
+            index_names = fashionIQ_val_general_index_names
     else:
         raise ValueError()
 
@@ -398,12 +415,15 @@ def load_fashionIQ_assets():
     """
     global fashionIQ_val_triplets
     fashionIQ_val_triplets = []
-    for dress_type in ['dress', 'toptee', 'shirt']:
+    # for dress_type in ['dress', 'toptee', 'shirt']:
+    for dress_type in ['general']:
         with open(server_base_path / 'fashionIQ_dataset' / 'captions' / f'cap.{dress_type}.val.json') as f:
             dress_type_captions = json.load(f)
             captions = [dict(caption, dress_type=f'{dress_type}') for caption in dress_type_captions]
             fashionIQ_val_triplets.extend(captions)
-
+    ##########################################
+    ##########################################
+    ##########################################
     global fashionIQ_val_dress_index_features
     fashionIQ_val_dress_index_features = torch.load(
         data_path / 'fashionIQ_val_dress_index_features.pt', map_location=device).type(data_type).cpu()
@@ -425,7 +445,9 @@ def load_fashionIQ_assets():
     fashionIQ_dress_index_features = torch.vstack(
         (fashionIQ_val_dress_index_features, fashionIQ_test_dress_index_features))
     fashionIQ_dress_index_names = fashionIQ_val_dress_index_names + fashionIQ_test_dress_index_names
-
+    ##########################################
+    ##########################################
+    ##########################################
     global fashionIQ_val_shirt_index_features
     fashionIQ_val_shirt_index_features = torch.load(
         data_path / 'fashionIQ_val_shirt_index_features.pt', map_location=device).type(data_type).cpu()
@@ -446,7 +468,9 @@ def load_fashionIQ_assets():
     fashionIQ_shirt_index_features = torch.vstack(
         (fashionIQ_val_shirt_index_features, fashionIQ_test_shirt_index_features))
     fashionIQ_shirt_index_names = fashionIQ_val_shirt_index_names + fashionIQ_test_shirt_index_names
-
+    ##########################################
+    ##########################################
+    ##########################################
     global fashionIQ_val_toptee_index_features
     fashionIQ_val_toptee_index_features = torch.load(
         data_path / 'fashionIQ_val_toptee_index_features.pt', map_location=device).type(data_type).cpu()
@@ -468,12 +492,40 @@ def load_fashionIQ_assets():
     fashionIQ_toptee_index_features = torch.vstack(
         (fashionIQ_val_toptee_index_features, fashionIQ_test_toptee_index_features))
     fashionIQ_toptee_index_names = fashionIQ_val_toptee_index_names + fashionIQ_test_toptee_index_names
+    ##########################################
+    ##########################################
+    ##########################################
+    global fashionIQ_val_general_index_features
+    fashionIQ_val_general_index_features = torch.load(
+        data_path / 'fashionIQ_val_general_index_features.pt', map_location=device).type(data_type).cpu()
 
+    global fashionIQ_val_general_index_names
+    with open(data_path / 'fashionIQ_val_general_index_names.pkl', 'rb') as f:
+        fashionIQ_val_general_index_names = pickle.load(f)
+
+    # global fashionIQ_test_general_index_features
+    # fashionIQ_test_general_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_general_index_features.pt', map_location=device).type(data_type).cpu()
+
+    # global fashionIQ_test_general_index_names
+    # with open(data_path / 'fashionIQ_test_general_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_general_index_names = pickle.load(f)
+
+    global fashionIQ_general_index_features
+    global fashionIQ_general_index_names
+    # fashionIQ_general_index_features = torch.vstack(
+        # (fashionIQ_val_general_index_features, fashionIQ_test_general_index_features))
+    fashionIQ_general_index_features = fashionIQ_val_general_index_features
+    # fashionIQ_general_index_names = fashionIQ_val_general_index_names + fashionIQ_test_general_index_names
+    fashionIQ_general_index_names = fashionIQ_val_general_index_names
+    ##########################################
+    ##########################################
+    ##########################################    
     global fashion_index_features
     global fashion_index_names
     fashion_index_features = torch.vstack(
-        (fashionIQ_dress_index_features, fashionIQ_shirt_index_features, fashionIQ_toptee_index_features))
-    fashion_index_names = fashionIQ_dress_index_names + fashionIQ_shirt_index_names + fashionIQ_toptee_index_names
+        (fashionIQ_dress_index_features, fashionIQ_shirt_index_features, fashionIQ_toptee_index_features, fashionIQ_general_index_features))
+    fashion_index_names = fashionIQ_dress_index_names + fashionIQ_shirt_index_names + fashionIQ_toptee_index_names + fashionIQ_general_index_names
 
 
 def load_cirr_assets():
@@ -524,5 +576,103 @@ def delete_uploaded_images():
         time.sleep(SLEEP_TIME)
 
 
+def download_and_get_image_name_from_url(url: str) -> str:
+    """
+    Download the image from the given url and return the name of the image
+    :param url: url of the image
+    """
+    pil_image = PIL.Image.open(BytesIO(requests.get(url).content))
+    parsed_url = urlparse(url)
+    path = parsed_url.path
+    filename = os.path.basename(path)
+    image_name = os.path.splitext(filename)[0] + str(int(time.time())) + os.path.splitext(filename)[1]
+    pil_image.save(app.config['UPLOAD_FOLDER'] / 'fashionIQ' / 'general' / image_name)
+    return image_name
+
+
+# @app.route('/test/<string:dataset>/<string:caption>', methods=['GET'])
+# def test_results(dataset: str, caption: str):
+#     """
+#     Compute the results of a given query and return
+#     :param dataset: dataset of the query
+#     :param reference_name: reference image name
+#     :param caption: relative caption
+#     """
+#     if request.method == 'GET':
+#         n_retrieved = 50  # retrieve first 50 results since for both dataset the R@50 is the broader scale metric
+#         reference_name = download_and_get_image_name_from_url(request.args.get('url', ''))
+#         if dataset == 'cirr':
+#             combiner = cirr_combiner
+#         elif dataset == 'fashionIQ':
+#             combiner = fashionIQ_combiner
+#         else:
+#             raise ValueError()
+#         sorted_group_names = ""
+
+#         if dataset == 'cirr':
+#             # Compute CIRR results
+#             sorted_group_names, sorted_index_names, target_name = compute_cirr_results(caption, combiner, n_retrieved,
+#                                                                                     reference_name)
+#         elif dataset == "fashionIQ":
+#             # Compute fashionIQ results
+#             sorted_index_names, target_name = compute_fashionIQ_results(caption, combiner, n_retrieved, reference_name)
+
+#         else:
+#             return redirect(url_for('choice'))
+#         # jsonify the results
+#         return json.dumps(sorted_index_names.tolist())
+#         # return render_template('results.html', dataset=dataset, caption=caption, reference_name=reference_name,
+#                             #    names=sorted_index_names[:n_retrieved], target_name=target_name,
+#                             #    group_names=sorted_group_names)
+
+def download_and_get_image_name_from_base64_url(url: str) -> str:
+    """
+    Download the image from the given base64 url and return the name of the image
+    :param url: url of the image
+    """
+    filename = "img.jpeg"
+    url = url.replace('data:image/jpeg;base64,', '')
+    url = url.replace(' ', '+')
+    print(url)
+    image_name = os.path.splitext(filename)[0] + str(int(time.time())) + os.path.splitext(filename)[1]
+    with open(app.config['UPLOAD_FOLDER'] / 'fashionIQ' / 'general' / image_name, "wb") as pil_image_file:
+        pil_image_file.write(base64.b64decode(url, validate=True))
+    return image_name
+
+@app.route('/test/<string:dataset>/<string:caption>', methods=['GET'])
+def test_results(dataset: str, caption: str):
+    """
+    Compute the results of a given query and return
+    :param dataset: dataset of the query
+    :param reference_name: reference image name
+    :param caption: relative caption
+    """
+    if request.method == 'GET':
+        n_retrieved = 50  # retrieve first 50 results since for both dataset the R@50 is the broader scale metric
+        reference_name = download_and_get_image_name_from_base64_url(request.args.get('url', ''))
+        if dataset == 'cirr':
+            combiner = cirr_combiner
+        elif dataset == 'fashionIQ':
+            combiner = fashionIQ_combiner
+        else:
+            raise ValueError()
+        sorted_group_names = ""
+
+        if dataset == 'cirr':
+            # Compute CIRR results
+            sorted_group_names, sorted_index_names, target_name = compute_cirr_results(caption, combiner, n_retrieved,
+                                                                                    reference_name)
+        elif dataset == "fashionIQ":
+            # Compute fashionIQ results
+            sorted_index_names, target_name = compute_fashionIQ_results(caption, combiner, n_retrieved, reference_name)
+
+        else:
+            return redirect(url_for('choice'))
+        # jsonify the results
+        return json.dumps(sorted_index_names.tolist())
+        # return render_template('results.html', dataset=dataset, caption=caption, reference_name=reference_name,
+                            #    names=sorted_index_names[:n_retrieved], target_name=target_name,
+                            #    group_names=sorted_group_names)
+
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
