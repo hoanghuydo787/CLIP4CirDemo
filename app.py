@@ -669,7 +669,11 @@ def test_results(dataset: str, caption: str):
         else:
             return redirect(url_for('choice'))
         # jsonify the results
-        return json.dumps(sorted_index_names.tolist())
+        name_list = sorted_index_names.tolist()
+        # for each name in name list, remove the postfix '_1'
+        for i in range(len(name_list)):
+            name_list[i] = name_list[i].split('_')[0]
+        return json.dumps(name_list)
         # return render_template('results.html', dataset=dataset, caption=caption, reference_name=reference_name,
                             #    names=sorted_index_names[:n_retrieved], target_name=target_name,
                             #    group_names=sorted_group_names)

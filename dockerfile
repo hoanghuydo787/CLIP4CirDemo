@@ -7,10 +7,10 @@ RUN python -c 'import uuid; print(uuid.uuid4())' > /tmp/my_uuid
 WORKDIR /app
 COPY . /app
 USER root
-RUN apt-get update && \
-    apt-get install -y git
+RUN apt-get update && apt-get install -y git
 RUN pip install comet-ml==3.21.0
 RUN pip install flask==2.0.2
 RUN pip install werkzeug==2.2.2
 RUN pip install git+https://github.com/openai/CLIP.git
+EXPOSE 5000
 CMD ["python", "app.py"]
