@@ -36,6 +36,7 @@ nltk.download('averaged_perceptron_tagger')
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = server_base_path / 'uploaded_files'
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 1GB
 
 if torch.cuda.is_available():
     device = torch.device("cuda")
@@ -1138,7 +1139,7 @@ def download_and_get_image_name_from_base64_url(url: str, category) -> str:
     filename = "img.jpeg"
     url = url.replace('data:image/jpeg;base64,', '')
     url = url.replace(' ', '+')
-    print(url)
+    # print(url)
     image_name = os.path.splitext(filename)[0] + str(int(time.time())) + os.path.splitext(filename)[1]
     with open(app.config['UPLOAD_FOLDER'] / 'fashionIQ' / category / image_name, "wb") as pil_image_file:
         pil_image_file.write(base64.b64decode(url, validate=True))
