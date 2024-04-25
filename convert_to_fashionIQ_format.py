@@ -62,7 +62,7 @@ if __name__ == "__main__":
     src_folder = Path("./adidas2000_val")
     dst_folder = Path("./fashionIQ")
 
-    # d = {'T-Shirts & Polos': 'tshirt_and_polo', 'Shorts': 'short', 'SportSwears': 'sportswear', 'Jackets': 'jacket', 'T-Shirts and Tops': 'tshirts_and_top', 'Dresses': 'dress', 'Skirts': 'skirt', 'Leggings': 'legging', 'Jerseys': 'jersey', 'Tracksuit': 'tracksuit', 'Hoodies': 'hoodie', 'Pants': 'pant', 'Tights': 'tight'}
+    # d = {'T-Shirts & Polos': 'tshirt_and_polo', 'Shorts': 'short', 'SportSwears': 'sportswear', 'Jackets': 'jacket', 'T-Shirts and Tops': 'tshirt_and_top', 'Dresses': 'dress', 'Skirts': 'skirt', 'Leggings': 'legging', 'Jerseys': 'jersey', 'Tracksuit': 'tracksuit', 'Hoodies': 'hoodie', 'Pants': 'pant', 'Tights': 'tight'}
     d = {"general": "general"}
 
 

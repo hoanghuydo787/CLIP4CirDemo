@@ -93,8 +93,8 @@ class FashionIQDataset(Dataset):
         if split not in ['test', 'val']:
             raise ValueError("split should be in ['test', 'val']")
         for dress_type in dress_types:
-            if dress_type not in ['dress', 'shirt', 'toptee', 'general', 'tshirt_and_polo', 'short', 'sportswear', 'jacket', 'tshirts_and_top', 'dress', 'skirt', 'legging', 'jersey', 'tracksuit', 'hoodie', 'pant', 'tight']:
-                raise ValueError("dress_type should be in ['dress', 'shirt', 'toptee', 'general', 'tshirt_and_polo', 'short', 'sportswear', 'jacket', 'tshirts_and_top', 'dress', 'skirt', 'legging', 'jersey', 'tracksuit', 'hoodie', 'pant', 'tight']")
+            if dress_type not in ['dress', 'shirt', 'toptee', 'general', 'tshirt_and_polo', 'short', 'sportswear', 'jacket', 'tshirt_and_top', 'dress', 'skirt', 'legging', 'jersey', 'tracksuit', 'hoodie', 'pant', 'tight']:
+                raise ValueError("dress_type should be in ['dress', 'shirt', 'toptee', 'general', 'tshirt_and_polo', 'short', 'sportswear', 'jacket', 'tshirt_and_top', 'dress', 'skirt', 'legging', 'jersey', 'tracksuit', 'hoodie', 'pant', 'tight']")
 
         self.preprocess = preprocess
 
