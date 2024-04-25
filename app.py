@@ -218,10 +218,10 @@ def compute_fashionIQ_results(caption: str, combiner: Combiner, n_retrieved: int
     # Assign the correct Fashion category to the reference image
     if reference_name in fashionIQ_dress_index_names:
         dress_type = 'dress'
-    elif reference_name in fashionIQ_toptee_index_names:
-        dress_type = 'toptee'
-    elif reference_name in fashionIQ_shirt_index_names:
-        dress_type = 'shirt'
+    # elif reference_name in fashionIQ_toptee_index_names:
+    #     dress_type = 'toptee'
+    # elif reference_name in fashionIQ_shirt_index_names:
+    #     dress_type = 'shirt'
     else:  # Search for an uploaded image
         for iter_path in app.config['UPLOAD_FOLDER'].rglob('*'):
             if iter_path.name == reference_name:
