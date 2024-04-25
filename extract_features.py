@@ -68,7 +68,8 @@ def main():
 
     # extract and save fashionIQ features
     # dress_types = ['dress', 'toptee', 'shirt']
-    dress_types = ['general']
+    # dress_types = ['general']
+    dress_types = ['tshirt_and_polo', 'short', 'sportswear', 'jacket', 'tshirts_and_top', 'dress', 'skirt', 'legging', 'jersey', 'tracksuit', 'hoodie', 'pant', 'tight', 'general']
     for dress_type in dress_types:
         val_dataset = FashionIQDataset('val', [dress_type], preprocess)
         extract_and_save_index_features(val_dataset, clip_model, feature_dim, f'fashionIQ_val_{dress_type}')

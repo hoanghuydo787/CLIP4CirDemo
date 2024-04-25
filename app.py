@@ -25,6 +25,15 @@ import base64
 from data_utils import targetpad_resize, targetpad_transform, server_base_path, data_path
 from model import Combiner
 
+from thefuzz import fuzz
+from thefuzz import process
+import nltk
+from nltk.corpus import stopwords
+
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = server_base_path / 'uploaded_files'
 
@@ -164,8 +173,7 @@ def results(dataset: str, reference_name: str, caption: str):
 
     if dataset == 'cirr':
         # Compute CIRR results
-        sorted_group_names, sorted_index_names, target_name = compute_cirr_results(caption, combiner, n_retrieved,
-                                                                                   reference_name)
+        sorted_group_names, sorted_index_names, target_name = compute_cirr_results(caption, combiner, n_retrieved, reference_name)
     elif dataset == "fashionIQ":
         # Compute fashionIQ results
         sorted_index_names, target_name = compute_fashionIQ_results(caption, combiner, n_retrieved, reference_name)
@@ -176,6 +184,22 @@ def results(dataset: str, reference_name: str, caption: str):
     return render_template('results.html', dataset=dataset, caption=caption, reference_name=reference_name,
                            names=sorted_index_names[:n_retrieved], target_name=target_name,
                            group_names=sorted_group_names)
+
+def extract_category_from_caption(caption: str) -> str:
+    choices = ['T-Shirts & Polos', 'Shorts', 'SportSwears', 'Jackets', 'T-Shirts and Tops', 'Dresses', 'Skirts', 'Leggings', 'Jerseys', 'Tracksuit', 'Hoodies', 'Pants', 'Tights']
+    res = []
+    stop_words = set(stopwords.words('english'))
+    for word in nltk.word_tokenize(caption):
+        if word not in stop_words and \
+        word.isalnum() and \
+        process.extractOne(word, choices)[1] > 80:
+            res.append(process.extractOne(word, choices))
+    if len(res) == 0:
+        return 'general'
+    # sort the results by the score
+    res.sort(key=lambda x: x[1], reverse=True)
+    d = {'T-Shirts & Polos': 'tshirt_and_polo', 'Shorts': 'short', 'SportSwears': 'sportswear', 'Jackets': 'jacket', 'T-Shirts and Tops': 'tshirt_and_top', 'Dresses': 'dress', 'Skirts': 'skirt', 'Leggings': 'legging', 'Jerseys': 'jersey', 'Tracksuit': 'tracksuit', 'Hoodies': 'hoodie', 'Pants': 'pant', 'Tights': 'tight'}
+    return d[res[0][0]]
 
 
 def compute_fashionIQ_results(caption: str, combiner: Combiner, n_retrieved: int, reference_name: str) -> Tuple[
@@ -203,7 +227,7 @@ def compute_fashionIQ_results(caption: str, combiner: Combiner, n_retrieved: int
             if iter_path.name == reference_name:
                 image_path = iter_path
                 # dress_type = image_path.parent.name
-                dress_type = 'general' # temporary solution
+                dress_type = extract_category_from_caption(caption)
                 break
         else:
             raise ValueError()
@@ -216,34 +240,151 @@ def compute_fashionIQ_results(caption: str, combiner: Combiner, n_retrieved: int
                 dress_type = triplet['dress_type']
 
     # Get the right category index features
-    if dress_type == "dress":
-        if target_name == "":
-            index_names = fashionIQ_dress_index_names
-            index_features = fashionIQ_dress_index_features
-        else:
-            index_features = fashionIQ_val_dress_index_features.to(device)
-            index_names = fashionIQ_val_dress_index_names
-    elif dress_type == "toptee":
-        if target_name == "":
-            index_names = fashionIQ_toptee_index_names
-            index_features = fashionIQ_toptee_index_features
-        else:
-            index_features = fashionIQ_val_toptee_index_features
-            index_names = fashionIQ_val_toptee_index_names
-    elif dress_type == "shirt":
-        if target_name == "":
-            index_names = fashionIQ_shirt_index_names
-            index_features = fashionIQ_shirt_index_features
-        else:
-            index_features = fashionIQ_val_shirt_index_features
-            index_names = fashionIQ_val_shirt_index_names
-    elif dress_type == "general":
+    # if dress_type == "dress":
+    #     if target_name == "":
+    #         index_names = fashionIQ_dress_index_names
+    #         index_features = fashionIQ_dress_index_features
+    #     else:
+    #         index_features = fashionIQ_val_dress_index_features
+    #         index_names = fashionIQ_val_dress_index_names
+    # elif dress_type == "toptee":
+    #     if target_name == "":
+    #         index_names = fashionIQ_toptee_index_names
+    #         index_features = fashionIQ_toptee_index_features
+    #     else:
+    #         index_features = fashionIQ_val_toptee_index_features
+    #         index_names = fashionIQ_val_toptee_index_names
+    # elif dress_type == "shirt":
+    #     if target_name == "":
+    #         index_names = fashionIQ_shirt_index_names
+    #         index_features = fashionIQ_shirt_index_features
+    #     else:
+    #         index_features = fashionIQ_val_shirt_index_features
+    #         index_names = fashionIQ_val_shirt_index_names
+
+    if dress_type == "general":
         if target_name == "":
             index_names = fashionIQ_general_index_names
             index_features = fashionIQ_general_index_features
         else:
             index_features = fashionIQ_val_general_index_features
             index_names = fashionIQ_val_general_index_names
+
+    elif dress_type == "tshirt_and_polo":
+        if target_name == "":
+            index_names = fashionIQ_tshirt_and_polo_index_names
+            index_features = fashionIQ_tshirt_and_polo_index_features
+        else:
+            index_names = fashionIQ_val_tshirt_and_polo_index_names
+            index_features = fashionIQ_val_tshirt_and_polo_index_features
+
+    elif dress_type == "short":
+        if target_name == "":
+            index_names = fashionIQ_short_index_names
+            index_features = fashionIQ_short_index_features
+        else:
+            index_names = fashionIQ_val_short_index_names
+            index_features = fashionIQ_val_short_index_features
+
+
+    elif dress_type == "sportswear":
+        if target_name == "":
+            index_names = fashionIQ_sportswear_index_names
+            index_features = fashionIQ_sportswear_index_features
+        else:
+            index_names = fashionIQ_val_sportswear_index_names
+            index_features = fashionIQ_val_sportswear_index_features
+
+
+    elif dress_type == "jacket":
+        if target_name == "":
+            index_names = fashionIQ_jacket_index_names
+            index_features = fashionIQ_jacket_index_features
+        else:
+            index_names = fashionIQ_val_jacket_index_names
+            index_features = fashionIQ_val_jacket_index_features
+
+
+    elif dress_type == "tshirt_and_top":
+        if target_name == "":
+            index_names = fashionIQ_tshirt_and_top_index_names
+            index_features = fashionIQ_tshirt_and_top_index_features
+        else:
+            index_names = fashionIQ_val_tshirt_and_top_index_names
+            index_features = fashionIQ_val_tshirt_and_top_index_features
+
+
+    elif dress_type == "dress":
+        if target_name == "":
+            index_names = fashionIQ_dress_index_names
+            index_features = fashionIQ_dress_index_features
+        else:
+            index_names = fashionIQ_val_dress_index_names
+            index_features = fashionIQ_val_dress_index_features
+
+
+    elif dress_type == "skirt":
+        if target_name == "":
+            index_names = fashionIQ_skirt_index_names
+            index_features = fashionIQ_skirt_index_features
+        else:
+            index_names = fashionIQ_val_skirt_index_names
+            index_features = fashionIQ_val_skirt_index_features
+
+
+    elif dress_type == "legging":
+        if target_name == "":
+            index_names = fashionIQ_legging_index_names
+            index_features = fashionIQ_legging_index_features
+        else:
+            index_names = fashionIQ_val_legging_index_names
+            index_features = fashionIQ_val_legging_index_features
+
+
+    elif dress_type == "jersey":
+        if target_name == "":
+            index_names = fashionIQ_jersey_index_names
+            index_features = fashionIQ_jersey_index_features
+        else:
+            index_names = fashionIQ_val_jersey_index_names
+            index_features = fashionIQ_val_jersey_index_features
+
+
+    elif dress_type == "tracksuit":
+        if target_name == "":
+            index_names = fashionIQ_tracksuit_index_names
+            index_features = fashionIQ_tracksuit_index_features
+        else:
+            index_names = fashionIQ_val_tracksuit_index_names
+            index_features = fashionIQ_val_tracksuit_index_features
+
+
+    elif dress_type == "hoodie":
+        if target_name == "":
+            index_names = fashionIQ_hoodie_index_names
+            index_features = fashionIQ_hoodie_index_features
+        else:
+            index_names = fashionIQ_val_hoodie_index_names
+            index_features = fashionIQ_val_hoodie_index_features
+
+
+    elif dress_type == "pant":
+        if target_name == "":
+            index_names = fashionIQ_pant_index_names
+            index_features = fashionIQ_pant_index_features
+        else:
+            index_names = fashionIQ_val_pant_index_names
+            index_features = fashionIQ_val_pant_index_features
+
+
+    elif dress_type == "tight":
+        if target_name == "":
+            index_names = fashionIQ_tight_index_names
+            index_features = fashionIQ_tight_index_features
+        else:
+            index_names = fashionIQ_val_tight_index_names
+            index_features = fashionIQ_val_tight_index_features
+
     else:
         raise ValueError()
 
@@ -400,13 +541,13 @@ def _load_assets():
     clip_model, clip_preprocess = clip.load("RN50x4")
     clip_model = clip_model.eval().to(device)
 
-    global fashionIQ_combiner
-    fashionIQ_combiner = torch.hub.load(server_base_path, source='local', model='combiner', dataset='fashionIQ')
-    fashionIQ_combiner = torch.jit.script(fashionIQ_combiner).type(data_type).to(device).eval()
-
     # global cirr_combiner
     # cirr_combiner = torch.hub.load(server_base_path, source='local', model='combiner', dataset='cirr')
     # cirr_combiner = torch.jit.script(cirr_combiner).type(data_type).to(device).eval()
+
+    global fashionIQ_combiner
+    fashionIQ_combiner = torch.hub.load(server_base_path, source='local', model='combiner', dataset='fashionIQ')
+    fashionIQ_combiner = torch.jit.script(fashionIQ_combiner).type(data_type).to(device).eval()
 
 
 def load_fashionIQ_assets():
@@ -415,8 +556,7 @@ def load_fashionIQ_assets():
     """
     global fashionIQ_val_triplets
     fashionIQ_val_triplets = []
-    # for dress_type in ['dress', 'toptee', 'shirt']:
-    for dress_type in ['general']:
+    for dress_type in ['general']: ### temporary solution
         with open(server_base_path / 'fashionIQ_dataset' / 'captions' / f'cap.{dress_type}.val.json') as f:
             dress_type_captions = json.load(f)
             captions = [dict(caption, dress_type=f'{dress_type}') for caption in dress_type_captions]
@@ -424,74 +564,74 @@ def load_fashionIQ_assets():
     ##########################################
     ##########################################
     ##########################################
-    global fashionIQ_val_dress_index_features
-    fashionIQ_val_dress_index_features = torch.load(
-        data_path / 'fashionIQ_val_dress_index_features.pt', map_location=device).type(data_type).cpu()
+    # global fashionIQ_val_dress_index_features
+    # fashionIQ_val_dress_index_features = torch.load(
+    #     data_path / 'fashionIQ_val_dress_index_features.pt', map_location=device).type(data_type).cpu()
 
-    global fashionIQ_val_dress_index_names
-    with open(data_path / 'fashionIQ_val_dress_index_names.pkl', 'rb') as f:
-        fashionIQ_val_dress_index_names = pickle.load(f)
+    # global fashionIQ_val_dress_index_names
+    # with open(data_path / 'fashionIQ_val_dress_index_names.pkl', 'rb') as f:
+    #     fashionIQ_val_dress_index_names = pickle.load(f)
 
-    global fashionIQ_test_dress_index_features
-    fashionIQ_test_dress_index_features = torch.load(
-        data_path / 'fashionIQ_test_dress_index_features.pt', map_location=device).type(data_type).cpu()
+    # global fashionIQ_test_dress_index_features
+    # fashionIQ_test_dress_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_dress_index_features.pt', map_location=device).type(data_type).cpu()
 
-    global fashionIQ_test_dress_index_names
-    with open(data_path / 'fashionIQ_test_dress_index_names.pkl', 'rb') as f:
-        fashionIQ_test_dress_index_names = pickle.load(f)
+    # global fashionIQ_test_dress_index_names
+    # with open(data_path / 'fashionIQ_test_dress_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_dress_index_names = pickle.load(f)
 
-    global fashionIQ_dress_index_names
-    global fashionIQ_dress_index_features
-    fashionIQ_dress_index_features = torch.vstack(
-        (fashionIQ_val_dress_index_features, fashionIQ_test_dress_index_features))
-    fashionIQ_dress_index_names = fashionIQ_val_dress_index_names + fashionIQ_test_dress_index_names
+    # global fashionIQ_dress_index_names
+    # global fashionIQ_dress_index_features
+    # fashionIQ_dress_index_features = torch.vstack(
+    #     (fashionIQ_val_dress_index_features, fashionIQ_test_dress_index_features))
+    # fashionIQ_dress_index_names = fashionIQ_val_dress_index_names + fashionIQ_test_dress_index_names
     ##########################################
     ##########################################
     ##########################################
-    global fashionIQ_val_shirt_index_features
-    fashionIQ_val_shirt_index_features = torch.load(
-        data_path / 'fashionIQ_val_shirt_index_features.pt', map_location=device).type(data_type).cpu()
+    # global fashionIQ_val_shirt_index_features
+    # fashionIQ_val_shirt_index_features = torch.load(
+    #     data_path / 'fashionIQ_val_shirt_index_features.pt', map_location=device).type(data_type).cpu()
 
-    global fashionIQ_val_shirt_index_names
-    with open(data_path / 'fashionIQ_val_shirt_index_names.pkl', 'rb') as f:
-        fashionIQ_val_shirt_index_names = pickle.load(f)
+    # global fashionIQ_val_shirt_index_names
+    # with open(data_path / 'fashionIQ_val_shirt_index_names.pkl', 'rb') as f:
+    #     fashionIQ_val_shirt_index_names = pickle.load(f)
 
-    global fashionIQ_test_shirt_index_features
-    fashionIQ_test_shirt_index_features = torch.load(
-        data_path / 'fashionIQ_test_shirt_index_features.pt', map_location=device).type(data_type).cpu()
-    global fashionIQ_test_shirt_index_names
-    with open(data_path / 'fashionIQ_test_shirt_index_names.pkl', 'rb') as f:
-        fashionIQ_test_shirt_index_names = pickle.load(f)
+    # global fashionIQ_test_shirt_index_features
+    # fashionIQ_test_shirt_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_shirt_index_features.pt', map_location=device).type(data_type).cpu()
+    # global fashionIQ_test_shirt_index_names
+    # with open(data_path / 'fashionIQ_test_shirt_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_shirt_index_names = pickle.load(f)
 
-    global fashionIQ_shirt_index_features
-    global fashionIQ_shirt_index_names
-    fashionIQ_shirt_index_features = torch.vstack(
-        (fashionIQ_val_shirt_index_features, fashionIQ_test_shirt_index_features))
-    fashionIQ_shirt_index_names = fashionIQ_val_shirt_index_names + fashionIQ_test_shirt_index_names
+    # global fashionIQ_shirt_index_features
+    # global fashionIQ_shirt_index_names
+    # fashionIQ_shirt_index_features = torch.vstack(
+    #     (fashionIQ_val_shirt_index_features, fashionIQ_test_shirt_index_features))
+    # fashionIQ_shirt_index_names = fashionIQ_val_shirt_index_names + fashionIQ_test_shirt_index_names
     ##########################################
     ##########################################
     ##########################################
-    global fashionIQ_val_toptee_index_features
-    fashionIQ_val_toptee_index_features = torch.load(
-        data_path / 'fashionIQ_val_toptee_index_features.pt', map_location=device).type(data_type).cpu()
+    # global fashionIQ_val_toptee_index_features
+    # fashionIQ_val_toptee_index_features = torch.load(
+    #     data_path / 'fashionIQ_val_toptee_index_features.pt', map_location=device).type(data_type).cpu()
 
-    global fashionIQ_val_toptee_index_names
-    with open(data_path / 'fashionIQ_val_toptee_index_names.pkl', 'rb') as f:
-        fashionIQ_val_toptee_index_names = pickle.load(f)
+    # global fashionIQ_val_toptee_index_names
+    # with open(data_path / 'fashionIQ_val_toptee_index_names.pkl', 'rb') as f:
+    #     fashionIQ_val_toptee_index_names = pickle.load(f)
 
-    global fashionIQ_test_toptee_index_features
-    fashionIQ_test_toptee_index_features = torch.load(
-        data_path / 'fashionIQ_test_toptee_index_features.pt', map_location=device).type(data_type).cpu()
+    # global fashionIQ_test_toptee_index_features
+    # fashionIQ_test_toptee_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_toptee_index_features.pt', map_location=device).type(data_type).cpu()
 
-    global fashionIQ_test_toptee_index_names
-    with open(data_path / 'fashionIQ_test_toptee_index_names.pkl', 'rb') as f:
-        fashionIQ_test_toptee_index_names = pickle.load(f)
+    # global fashionIQ_test_toptee_index_names
+    # with open(data_path / 'fashionIQ_test_toptee_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_toptee_index_names = pickle.load(f)
 
-    global fashionIQ_toptee_index_features
-    global fashionIQ_toptee_index_names
-    fashionIQ_toptee_index_features = torch.vstack(
-        (fashionIQ_val_toptee_index_features, fashionIQ_test_toptee_index_features))
-    fashionIQ_toptee_index_names = fashionIQ_val_toptee_index_names + fashionIQ_test_toptee_index_names
+    # global fashionIQ_toptee_index_features
+    # global fashionIQ_toptee_index_names
+    # fashionIQ_toptee_index_features = torch.vstack(
+    #     (fashionIQ_val_toptee_index_features, fashionIQ_test_toptee_index_features))
+    # fashionIQ_toptee_index_names = fashionIQ_val_toptee_index_names + fashionIQ_test_toptee_index_names
     ##########################################
     ##########################################
     ##########################################
@@ -520,12 +660,377 @@ def load_fashionIQ_assets():
     fashionIQ_general_index_names = fashionIQ_val_general_index_names
     ##########################################
     ##########################################
-    ##########################################    
+    ##########################################
+    global fashionIQ_val_tshirt_and_polo_index_features
+    fashionIQ_val_tshirt_and_polo_index_features = torch.load(
+        data_path / 'fashionIQ_val_tshirt_and_polo_index_features.pt', map_location=device).type(data_type).cpu()
+
+    global fashionIQ_val_tshirt_and_polo_index_names
+    with open(data_path / 'fashionIQ_val_tshirt_and_polo_index_names.pkl', 'rb') as f:
+        fashionIQ_val_tshirt_and_polo_index_names = pickle.load(f)
+
+    # global fashionIQ_test_tshirt_and_polo_index_features
+    # fashionIQ_test_tshirt_and_polo_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_tshirt_and_polo_index_features.pt', map_location=device).type(data_type).cpu()
+
+    # global fashionIQ_test_tshirt_and_polo_index_names
+    # with open(data_path / 'fashionIQ_test_tshirt_and_polo_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_tshirt_and_polo_index_names = pickle.load(f)
+
+    global fashionIQ_tshirt_and_polo_index_features
+    global fashionIQ_tshirt_and_polo_index_names
+    # fashionIQ_tshirt_and_polo_index_features = torch.vstack(
+        # (fashionIQ_val_tshirt_and_polo_index_features, fashionIQ_test_tshirt_and_polo_index_features))
+    fashionIQ_tshirt_and_polo_index_features = fashionIQ_val_tshirt_and_polo_index_features
+    # fashionIQ_tshirt_and_polo_index_names = fashionIQ_val_tshirt_and_polo_index_names + fashionIQ_test_tshirt_and_polo_index_names
+    fashionIQ_tshirt_and_polo_index_names = fashionIQ_val_tshirt_and_polo_index_names
+
+
+    ##########################################
+    ##########################################
+    ##########################################
+    global fashionIQ_val_short_index_features
+    fashionIQ_val_short_index_features = torch.load(
+        data_path / 'fashionIQ_val_short_index_features.pt', map_location=device).type(data_type).cpu()
+
+    global fashionIQ_val_short_index_names
+    with open(data_path / 'fashionIQ_val_short_index_names.pkl', 'rb') as f:
+        fashionIQ_val_short_index_names = pickle.load(f)
+
+    # global fashionIQ_test_short_index_features
+    # fashionIQ_test_short_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_short_index_features.pt', map_location=device).type(data_type).cpu()
+
+    # global fashionIQ_test_short_index_names
+    # with open(data_path / 'fashionIQ_test_short_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_short_index_names = pickle.load(f)
+
+    global fashionIQ_short_index_features
+    global fashionIQ_short_index_names
+    # fashionIQ_short_index_features = torch.vstack(
+        # (fashionIQ_val_short_index_features, fashionIQ_test_short_index_features))
+    fashionIQ_short_index_features = fashionIQ_val_short_index_features
+    # fashionIQ_short_index_names = fashionIQ_val_short_index_names + fashionIQ_test_short_index_names
+    fashionIQ_short_index_names = fashionIQ_val_short_index_names
+
+
+    ##########################################
+    ##########################################
+    ##########################################
+    global fashionIQ_val_sportswear_index_features
+    fashionIQ_val_sportswear_index_features = torch.load(
+        data_path / 'fashionIQ_val_sportswear_index_features.pt', map_location=device).type(data_type).cpu()
+
+    global fashionIQ_val_sportswear_index_names
+    with open(data_path / 'fashionIQ_val_sportswear_index_names.pkl', 'rb') as f:
+        fashionIQ_val_sportswear_index_names = pickle.load(f)
+
+    # global fashionIQ_test_sportswear_index_features
+    # fashionIQ_test_sportswear_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_sportswear_index_features.pt', map_location=device).type(data_type).cpu()
+
+    # global fashionIQ_test_sportswear_index_names
+    # with open(data_path / 'fashionIQ_test_sportswear_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_sportswear_index_names = pickle.load(f)
+
+    global fashionIQ_sportswear_index_features
+    global fashionIQ_sportswear_index_names
+    # fashionIQ_sportswear_index_features = torch.vstack(
+        # (fashionIQ_val_sportswear_index_features, fashionIQ_test_sportswear_index_features))
+    fashionIQ_sportswear_index_features = fashionIQ_val_sportswear_index_features
+    # fashionIQ_sportswear_index_names = fashionIQ_val_sportswear_index_names + fashionIQ_test_sportswear_index_names
+    fashionIQ_sportswear_index_names = fashionIQ_val_sportswear_index_names
+
+
+    ##########################################
+    ##########################################
+    ##########################################
+    global fashionIQ_val_jacket_index_features
+    fashionIQ_val_jacket_index_features = torch.load(
+        data_path / 'fashionIQ_val_jacket_index_features.pt', map_location=device).type(data_type).cpu()
+
+    global fashionIQ_val_jacket_index_names
+    with open(data_path / 'fashionIQ_val_jacket_index_names.pkl', 'rb') as f:
+        fashionIQ_val_jacket_index_names = pickle.load(f)
+
+    # global fashionIQ_test_jacket_index_features
+    # fashionIQ_test_jacket_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_jacket_index_features.pt', map_location=device).type(data_type).cpu()
+
+    # global fashionIQ_test_jacket_index_names
+    # with open(data_path / 'fashionIQ_test_jacket_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_jacket_index_names = pickle.load(f)
+
+    global fashionIQ_jacket_index_features
+    global fashionIQ_jacket_index_names
+    # fashionIQ_jacket_index_features = torch.vstack(
+        # (fashionIQ_val_jacket_index_features, fashionIQ_test_jacket_index_features))
+    fashionIQ_jacket_index_features = fashionIQ_val_jacket_index_features
+    # fashionIQ_jacket_index_names = fashionIQ_val_jacket_index_names + fashionIQ_test_jacket_index_names
+    fashionIQ_jacket_index_names = fashionIQ_val_jacket_index_names
+
+
+    ##########################################
+    ##########################################
+    ##########################################
+    global fashionIQ_val_tshirt_and_top_index_features
+    fashionIQ_val_tshirt_and_top_index_features = torch.load(
+        data_path / 'fashionIQ_val_tshirt_and_top_index_features.pt', map_location=device).type(data_type).cpu()
+
+    global fashionIQ_val_tshirt_and_top_index_names
+    with open(data_path / 'fashionIQ_val_tshirt_and_top_index_names.pkl', 'rb') as f:
+        fashionIQ_val_tshirt_and_top_index_names = pickle.load(f)
+
+    # global fashionIQ_test_tshirt_and_top_index_features
+    # fashionIQ_test_tshirt_and_top_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_tshirt_and_top_index_features.pt', map_location=device).type(data_type).cpu()
+
+    # global fashionIQ_test_tshirt_and_top_index_names
+    # with open(data_path / 'fashionIQ_test_tshirt_and_top_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_tshirt_and_top_index_names = pickle.load(f)
+
+    global fashionIQ_tshirt_and_top_index_features
+    global fashionIQ_tshirt_and_top_index_names
+    # fashionIQ_tshirt_and_top_index_features = torch.vstack(
+        # (fashionIQ_val_tshirt_and_top_index_features, fashionIQ_test_tshirt_and_top_index_features))
+    fashionIQ_tshirt_and_top_index_features = fashionIQ_val_tshirt_and_top_index_features
+    # fashionIQ_tshirt_and_top_index_names = fashionIQ_val_tshirt_and_top_index_names + fashionIQ_test_tshirt_and_top_index_names
+    fashionIQ_tshirt_and_top_index_names = fashionIQ_val_tshirt_and_top_index_names
+
+
+    ##########################################
+    ##########################################
+    ##########################################
+    global fashionIQ_val_dress_index_features
+    fashionIQ_val_dress_index_features = torch.load(
+        data_path / 'fashionIQ_val_dress_index_features.pt', map_location=device).type(data_type).cpu()
+
+    global fashionIQ_val_dress_index_names
+    with open(data_path / 'fashionIQ_val_dress_index_names.pkl', 'rb') as f:
+        fashionIQ_val_dress_index_names = pickle.load(f)
+
+    # global fashionIQ_test_dress_index_features
+    # fashionIQ_test_dress_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_dress_index_features.pt', map_location=device).type(data_type).cpu()
+
+    # global fashionIQ_test_dress_index_names
+    # with open(data_path / 'fashionIQ_test_dress_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_dress_index_names = pickle.load(f)
+
+    global fashionIQ_dress_index_features
+    global fashionIQ_dress_index_names
+    # fashionIQ_dress_index_features = torch.vstack(
+        # (fashionIQ_val_dress_index_features, fashionIQ_test_dress_index_features))
+    fashionIQ_dress_index_features = fashionIQ_val_dress_index_features
+    # fashionIQ_dress_index_names = fashionIQ_val_dress_index_names + fashionIQ_test_dress_index_names
+    fashionIQ_dress_index_names = fashionIQ_val_dress_index_names
+
+
+    ##########################################
+    ##########################################
+    ##########################################
+    global fashionIQ_val_skirt_index_features
+    fashionIQ_val_skirt_index_features = torch.load(
+        data_path / 'fashionIQ_val_skirt_index_features.pt', map_location=device).type(data_type).cpu()
+
+    global fashionIQ_val_skirt_index_names
+    with open(data_path / 'fashionIQ_val_skirt_index_names.pkl', 'rb') as f:
+        fashionIQ_val_skirt_index_names = pickle.load(f)
+
+    # global fashionIQ_test_skirt_index_features
+    # fashionIQ_test_skirt_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_skirt_index_features.pt', map_location=device).type(data_type).cpu()
+
+    # global fashionIQ_test_skirt_index_names
+    # with open(data_path / 'fashionIQ_test_skirt_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_skirt_index_names = pickle.load(f)
+
+    global fashionIQ_skirt_index_features
+    global fashionIQ_skirt_index_names
+    # fashionIQ_skirt_index_features = torch.vstack(
+        # (fashionIQ_val_skirt_index_features, fashionIQ_test_skirt_index_features))
+    fashionIQ_skirt_index_features = fashionIQ_val_skirt_index_features
+    # fashionIQ_skirt_index_names = fashionIQ_val_skirt_index_names + fashionIQ_test_skirt_index_names
+    fashionIQ_skirt_index_names = fashionIQ_val_skirt_index_names
+
+
+    ##########################################
+    ##########################################
+    ##########################################
+    global fashionIQ_val_legging_index_features
+    fashionIQ_val_legging_index_features = torch.load(
+        data_path / 'fashionIQ_val_legging_index_features.pt', map_location=device).type(data_type).cpu()
+
+    global fashionIQ_val_legging_index_names
+    with open(data_path / 'fashionIQ_val_legging_index_names.pkl', 'rb') as f:
+        fashionIQ_val_legging_index_names = pickle.load(f)
+
+    # global fashionIQ_test_legging_index_features
+    # fashionIQ_test_legging_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_legging_index_features.pt', map_location=device).type(data_type).cpu()
+
+    # global fashionIQ_test_legging_index_names
+    # with open(data_path / 'fashionIQ_test_legging_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_legging_index_names = pickle.load(f)
+
+    global fashionIQ_legging_index_features
+    global fashionIQ_legging_index_names
+    # fashionIQ_legging_index_features = torch.vstack(
+        # (fashionIQ_val_legging_index_features, fashionIQ_test_legging_index_features))
+    fashionIQ_legging_index_features = fashionIQ_val_legging_index_features
+    # fashionIQ_legging_index_names = fashionIQ_val_legging_index_names + fashionIQ_test_legging_index_names
+    fashionIQ_legging_index_names = fashionIQ_val_legging_index_names
+
+
+    ##########################################
+    ##########################################
+    ##########################################
+    global fashionIQ_val_jersey_index_features
+    fashionIQ_val_jersey_index_features = torch.load(
+        data_path / 'fashionIQ_val_jersey_index_features.pt', map_location=device).type(data_type).cpu()
+
+    global fashionIQ_val_jersey_index_names
+    with open(data_path / 'fashionIQ_val_jersey_index_names.pkl', 'rb') as f:
+        fashionIQ_val_jersey_index_names = pickle.load(f)
+
+    # global fashionIQ_test_jersey_index_features
+    # fashionIQ_test_jersey_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_jersey_index_features.pt', map_location=device).type(data_type).cpu()
+
+    # global fashionIQ_test_jersey_index_names
+    # with open(data_path / 'fashionIQ_test_jersey_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_jersey_index_names = pickle.load(f)
+
+    global fashionIQ_jersey_index_features
+    global fashionIQ_jersey_index_names
+    # fashionIQ_jersey_index_features = torch.vstack(
+        # (fashionIQ_val_jersey_index_features, fashionIQ_test_jersey_index_features))
+    fashionIQ_jersey_index_features = fashionIQ_val_jersey_index_features
+    # fashionIQ_jersey_index_names = fashionIQ_val_jersey_index_names + fashionIQ_test_jersey_index_names
+    fashionIQ_jersey_index_names = fashionIQ_val_jersey_index_names
+
+
+    ##########################################
+    ##########################################
+    ##########################################
+    global fashionIQ_val_tracksuit_index_features
+    fashionIQ_val_tracksuit_index_features = torch.load(
+        data_path / 'fashionIQ_val_tracksuit_index_features.pt', map_location=device).type(data_type).cpu()
+
+    global fashionIQ_val_tracksuit_index_names
+    with open(data_path / 'fashionIQ_val_tracksuit_index_names.pkl', 'rb') as f:
+        fashionIQ_val_tracksuit_index_names = pickle.load(f)
+
+    # global fashionIQ_test_tracksuit_index_features
+    # fashionIQ_test_tracksuit_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_tracksuit_index_features.pt', map_location=device).type(data_type).cpu()
+
+    # global fashionIQ_test_tracksuit_index_names
+    # with open(data_path / 'fashionIQ_test_tracksuit_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_tracksuit_index_names = pickle.load(f)
+
+    global fashionIQ_tracksuit_index_features
+    global fashionIQ_tracksuit_index_names
+    # fashionIQ_tracksuit_index_features = torch.vstack(
+        # (fashionIQ_val_tracksuit_index_features, fashionIQ_test_tracksuit_index_features))
+    fashionIQ_tracksuit_index_features = fashionIQ_val_tracksuit_index_features
+    # fashionIQ_tracksuit_index_names = fashionIQ_val_tracksuit_index_names + fashionIQ_test_tracksuit_index_names
+    fashionIQ_tracksuit_index_names = fashionIQ_val_tracksuit_index_names
+
+
+    ##########################################
+    ##########################################
+    ##########################################
+    global fashionIQ_val_hoodie_index_features
+    fashionIQ_val_hoodie_index_features = torch.load(
+        data_path / 'fashionIQ_val_hoodie_index_features.pt', map_location=device).type(data_type).cpu()
+
+    global fashionIQ_val_hoodie_index_names
+    with open(data_path / 'fashionIQ_val_hoodie_index_names.pkl', 'rb') as f:
+        fashionIQ_val_hoodie_index_names = pickle.load(f)
+
+    # global fashionIQ_test_hoodie_index_features
+    # fashionIQ_test_hoodie_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_hoodie_index_features.pt', map_location=device).type(data_type).cpu()
+
+    # global fashionIQ_test_hoodie_index_names
+    # with open(data_path / 'fashionIQ_test_hoodie_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_hoodie_index_names = pickle.load(f)
+
+    global fashionIQ_hoodie_index_features
+    global fashionIQ_hoodie_index_names
+    # fashionIQ_hoodie_index_features = torch.vstack(
+        # (fashionIQ_val_hoodie_index_features, fashionIQ_test_hoodie_index_features))
+    fashionIQ_hoodie_index_features = fashionIQ_val_hoodie_index_features
+    # fashionIQ_hoodie_index_names = fashionIQ_val_hoodie_index_names + fashionIQ_test_hoodie_index_names
+    fashionIQ_hoodie_index_names = fashionIQ_val_hoodie_index_names
+
+
+    ##########################################
+    ##########################################
+    ##########################################
+    global fashionIQ_val_pant_index_features
+    fashionIQ_val_pant_index_features = torch.load(
+        data_path / 'fashionIQ_val_pant_index_features.pt', map_location=device).type(data_type).cpu()
+
+    global fashionIQ_val_pant_index_names
+    with open(data_path / 'fashionIQ_val_pant_index_names.pkl', 'rb') as f:
+        fashionIQ_val_pant_index_names = pickle.load(f)
+
+    # global fashionIQ_test_pant_index_features
+    # fashionIQ_test_pant_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_pant_index_features.pt', map_location=device).type(data_type).cpu()
+
+    # global fashionIQ_test_pant_index_names
+    # with open(data_path / 'fashionIQ_test_pant_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_pant_index_names = pickle.load(f)
+
+    global fashionIQ_pant_index_features
+    global fashionIQ_pant_index_names
+    # fashionIQ_pant_index_features = torch.vstack(
+        # (fashionIQ_val_pant_index_features, fashionIQ_test_pant_index_features))
+    fashionIQ_pant_index_features = fashionIQ_val_pant_index_features
+    # fashionIQ_pant_index_names = fashionIQ_val_pant_index_names + fashionIQ_test_pant_index_names
+    fashionIQ_pant_index_names = fashionIQ_val_pant_index_names
+
+
+    ##########################################
+    ##########################################
+    ##########################################
+    global fashionIQ_val_tight_index_features
+    fashionIQ_val_tight_index_features = torch.load(
+        data_path / 'fashionIQ_val_tight_index_features.pt', map_location=device).type(data_type).cpu()
+
+    global fashionIQ_val_tight_index_names
+    with open(data_path / 'fashionIQ_val_tight_index_names.pkl', 'rb') as f:
+        fashionIQ_val_tight_index_names = pickle.load(f)
+
+    # global fashionIQ_test_tight_index_features
+    # fashionIQ_test_tight_index_features = torch.load(
+    #     data_path / 'fashionIQ_test_tight_index_features.pt', map_location=device).type(data_type).cpu()
+
+    # global fashionIQ_test_tight_index_names
+    # with open(data_path / 'fashionIQ_test_tight_index_names.pkl', 'rb') as f:
+    #     fashionIQ_test_tight_index_names = pickle.load(f)
+
+    global fashionIQ_tight_index_features
+    global fashionIQ_tight_index_names
+    # fashionIQ_tight_index_features = torch.vstack(
+        # (fashionIQ_val_tight_index_features, fashionIQ_test_tight_index_features))
+    fashionIQ_tight_index_features = fashionIQ_val_tight_index_features
+    # fashionIQ_tight_index_names = fashionIQ_val_tight_index_names + fashionIQ_test_tight_index_names
+    fashionIQ_tight_index_names = fashionIQ_val_tight_index_names
+    ##########################################
+    ##########################################
+    ##########################################
     global fashion_index_features
     global fashion_index_names
+    # fashion_index_features = torch.vstack(
+    #     (fashionIQ_dress_index_features, fashionIQ_shirt_index_features, fashionIQ_toptee_index_features, fashionIQ_general_index_features))
     fashion_index_features = torch.vstack(
-        (fashionIQ_dress_index_features, fashionIQ_shirt_index_features, fashionIQ_toptee_index_features, fashionIQ_general_index_features))
-    fashion_index_names = fashionIQ_dress_index_names + fashionIQ_shirt_index_names + fashionIQ_toptee_index_names + fashionIQ_general_index_names
+        (fashionIQ_general_index_features, fashionIQ_tshirt_and_polo_index_features, fashionIQ_short_index_features, fashionIQ_sportswear_index_features, fashionIQ_jacket_index_features, fashionIQ_tshirt_and_top_index_features, fashionIQ_dress_index_features, fashionIQ_skirt_index_features, fashionIQ_legging_index_features, fashionIQ_jersey_index_features, fashionIQ_tracksuit_index_features, fashionIQ_hoodie_index_features, fashionIQ_pant_index_features, fashionIQ_tight_index_features))
+    # fashion_index_names = fashionIQ_dress_index_names + fashionIQ_shirt_index_names + fashionIQ_toptee_index_names + fashionIQ_general_index_names
+    fashion_index_names = fashionIQ_general_index_names + fashionIQ_tshirt_and_polo_index_names + fashionIQ_short_index_names + fashionIQ_sportswear_index_names + fashionIQ_jacket_index_names + fashionIQ_tshirt_and_top_index_names + fashionIQ_dress_index_names + fashionIQ_skirt_index_names + fashionIQ_legging_index_names + fashionIQ_jersey_index_names + fashionIQ_tracksuit_index_names + fashionIQ_hoodie_index_names + fashionIQ_pant_index_names + fashionIQ_tight_index_names
 
 
 def load_cirr_assets():
@@ -586,7 +1091,7 @@ def download_and_get_image_name_from_url(url: str) -> str:
     path = parsed_url.path
     filename = os.path.basename(path)
     image_name = os.path.splitext(filename)[0] + str(int(time.time())) + os.path.splitext(filename)[1]
-    pil_image.save(app.config['UPLOAD_FOLDER'] / 'fashionIQ' / 'general' / image_name)
+    pil_image.save(app.config['UPLOAD_FOLDER'] / 'fashionIQ' / 'general' / image_name) ### temporary solution
     return image_name
 
 
@@ -625,7 +1130,7 @@ def download_and_get_image_name_from_url(url: str) -> str:
 #                             #    names=sorted_index_names[:n_retrieved], target_name=target_name,
 #                             #    group_names=sorted_group_names)
 
-def download_and_get_image_name_from_base64_url(url: str) -> str:
+def download_and_get_image_name_from_base64_url(url: str, category) -> str:
     """
     Download the image from the given base64 url and return the name of the image
     :param url: url of the image
@@ -635,7 +1140,7 @@ def download_and_get_image_name_from_base64_url(url: str) -> str:
     url = url.replace(' ', '+')
     print(url)
     image_name = os.path.splitext(filename)[0] + str(int(time.time())) + os.path.splitext(filename)[1]
-    with open(app.config['UPLOAD_FOLDER'] / 'fashionIQ' / 'general' / image_name, "wb") as pil_image_file:
+    with open(app.config['UPLOAD_FOLDER'] / 'fashionIQ' / category / image_name, "wb") as pil_image_file:
         pil_image_file.write(base64.b64decode(url, validate=True))
     return image_name
 
@@ -647,9 +1152,11 @@ def test_results(dataset: str, caption: str):
     :param reference_name: reference image name
     :param caption: relative caption
     """
+    # extract category from caption
+    category = extract_category_from_caption(caption)
     if request.method == 'GET':
         n_retrieved = 50  # retrieve first 50 results since for both dataset the R@50 is the broader scale metric
-        reference_name = download_and_get_image_name_from_base64_url(request.args.get('url', ''))
+        reference_name = download_and_get_image_name_from_base64_url(request.args.get('url', ''), category)
         if dataset == 'cirr':
             combiner = cirr_combiner
         elif dataset == 'fashionIQ':
@@ -658,10 +1165,10 @@ def test_results(dataset: str, caption: str):
             raise ValueError()
         sorted_group_names = ""
 
+
         if dataset == 'cirr':
             # Compute CIRR results
-            sorted_group_names, sorted_index_names, target_name = compute_cirr_results(caption, combiner, n_retrieved,
-                                                                                    reference_name)
+            sorted_group_names, sorted_index_names, target_name = compute_cirr_results(caption, combiner, n_retrieved, reference_name)
         elif dataset == "fashionIQ":
             # Compute fashionIQ results
             sorted_index_names, target_name = compute_fashionIQ_results(caption, combiner, n_retrieved, reference_name)
@@ -674,9 +1181,6 @@ def test_results(dataset: str, caption: str):
         for i in range(len(name_list)):
             name_list[i] = name_list[i].split('_')[0]
         return json.dumps(name_list)
-        # return render_template('results.html', dataset=dataset, caption=caption, reference_name=reference_name,
-                            #    names=sorted_index_names[:n_retrieved], target_name=target_name,
-                            #    group_names=sorted_group_names)
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)

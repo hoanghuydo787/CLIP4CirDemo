@@ -334,4 +334,9 @@ modules.xml
 # End of https://www.toptal.com/developers/gitignore/api/python,flask,pycharm+all
 
 fashionIQ_dataset/
+fashionIQ/
 models/
+adidas400_val/
+adidas1600_train/
+addidasWithCate/
+adidas2000_val/
