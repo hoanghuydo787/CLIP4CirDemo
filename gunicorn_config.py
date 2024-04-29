@@ -10,7 +10,7 @@ threads = int(os.environ.get('GUNICORN_THREADS', '4'))
 
 bind = os.environ.get('GUNICORN_BIND', '0.0.0.0:5000')
 
-
+limit_request_line = int(os.environ.get('GUNICORN_LIMIT_REQUEST_LINE', '0'))
 
 forwarded_allow_ips = '*'
 
