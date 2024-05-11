@@ -157,30 +157,34 @@ def custom_caption(dataset: str, reference_name: str, old_caption: Optional[str]
 @app.route('/<string:dataset>/<string:reference_name>/<string:caption>')
 def results(dataset: str, reference_name: str, caption: str):
     """
-    Compute the results of a given query and makes the render of 'results.html' template
+    Compute the results of a given query and return
     :param dataset: dataset of the query
     :param reference_name: reference image name
     :param caption: relative caption
     """
-    n_retrieved = 50  # retrieve first 50 results since for both dataset the R@50 is the broader scale metric
+    # extract category from caption
+    category = extract_category_from_caption(caption)
+    if request.method == 'GET':
+        n_retrieved = 50  # retrieve first 50 results since for both dataset the R@50 is the broader scale metric
+        # reference_name = download_and_get_image_name_from_base64_url(request.args.get('url', ''), category)
+        if dataset == 'cirr':
+            combiner = cirr_combiner
+        elif dataset == 'fashionIQ':
+            combiner = fashionIQ_combiner
+        else:
+            raise ValueError()
+        sorted_group_names = ""
 
-    if dataset == 'cirr':
-        combiner = cirr_combiner
-    elif dataset == 'fashionIQ':
-        combiner = fashionIQ_combiner
-    else:
-        raise ValueError()
-    sorted_group_names = ""
 
-    if dataset == 'cirr':
-        # Compute CIRR results
-        sorted_group_names, sorted_index_names, target_name = compute_cirr_results(caption, combiner, n_retrieved, reference_name)
-    elif dataset == "fashionIQ":
-        # Compute fashionIQ results
-        sorted_index_names, target_name = compute_fashionIQ_results(caption, combiner, n_retrieved, reference_name)
+        if dataset == 'cirr':
+            # Compute CIRR results
+            sorted_group_names, sorted_index_names, target_name = compute_cirr_results(caption, combiner, n_retrieved, reference_name)
+        elif dataset == "fashionIQ":
+            # Compute fashionIQ results
+            sorted_index_names, target_name = compute_fashionIQ_results(caption, combiner, n_retrieved, reference_name)
 
-    else:
-        return redirect(url_for('choice'))
+        else:
+            return redirect(url_for('choice'))
 
     return render_template('results.html', dataset=dataset, caption=caption, reference_name=reference_name,
                            names=sorted_index_names[:n_retrieved], target_name=target_name,
@@ -217,13 +221,14 @@ def compute_fashionIQ_results(caption: str, combiner: Combiner, n_retrieved: int
     target_name = ""
 
     # Assign the correct Fashion category to the reference image
-    if reference_name in fashionIQ_dress_index_names:
-        dress_type = 'dress'
+    # if reference_name in fashionIQ_dress_index_names:
+    #     dress_type = 'dress'
     # elif reference_name in fashionIQ_toptee_index_names:
     #     dress_type = 'toptee'
     # elif reference_name in fashionIQ_shirt_index_names:
     #     dress_type = 'shirt'
-    else:  # Search for an uploaded image
+    # else:  # Search for an uploaded image
+    if True:    
         for iter_path in app.config['UPLOAD_FOLDER'].rglob('*'):
             if iter_path.name == reference_name:
                 image_path = iter_path
@@ -515,7 +520,8 @@ def get_image(image_name: str, dim: Optional[int] = None, gt: Optional[str] = No
         pil_image = PIL.ImageOps.expand(pil_image, border=1, fill='grey')
 
     img_io = BytesIO()
-    pil_image.save(img_io, 'JPEG', quality=80)
+    pil_image.convert('RGB').save(img_io, 'JPEG', quality=80)
+    # pil_image.save(img_io, 'JPEG', quality=80)
     img_io.seek(0)
     return send_file(img_io, mimetype='image/jpeg')
 
@@ -557,7 +563,7 @@ def load_fashionIQ_assets():
     """
     global fashionIQ_val_triplets
     fashionIQ_val_triplets = []
-    for dress_type in ['general']: ### temporary solution
+    for dress_type in ['tshirt_and_polo', 'short', 'sportswear', 'jacket', 'tshirt_and_top', 'dress', 'skirt', 'legging', 'jersey', 'tracksuit', 'hoodie', 'pant', 'tight', 'general']:
         with open(server_base_path / 'fashionIQ_dataset' / 'captions' / f'cap.{dress_type}.val.json') as f:
             dress_type_captions = json.load(f)
             captions = [dict(caption, dress_type=f'{dress_type}') for caption in dress_type_captions]
@@ -1080,56 +1086,6 @@ def delete_uploaded_images():
                     iter_path.unlink()
 
         time.sleep(SLEEP_TIME)
-
-
-def download_and_get_image_name_from_url(url: str) -> str:
-    """
-    Download the image from the given url and return the name of the image
-    :param url: url of the image
-    """
-    pil_image = PIL.Image.open(BytesIO(requests.get(url).content))
-    parsed_url = urlparse(url)
-    path = parsed_url.path
-    filename = os.path.basename(path)
-    image_name = os.path.splitext(filename)[0] + str(int(time.time())) + os.path.splitext(filename)[1]
-    pil_image.save(app.config['UPLOAD_FOLDER'] / 'fashionIQ' / 'general' / image_name) ### temporary solution
-    return image_name
-
-
-# @app.route('/test/<string:dataset>/<string:caption>', methods=['GET'])
-# def test_results(dataset: str, caption: str):
-#     """
-#     Compute the results of a given query and return
-#     :param dataset: dataset of the query
-#     :param reference_name: reference image name
-#     :param caption: relative caption
-#     """
-#     if request.method == 'GET':
-#         n_retrieved = 50  # retrieve first 50 results since for both dataset the R@50 is the broader scale metric
-#         reference_name = download_and_get_image_name_from_url(request.args.get('url', ''))
-#         if dataset == 'cirr':
-#             combiner = cirr_combiner
-#         elif dataset == 'fashionIQ':
-#             combiner = fashionIQ_combiner
-#         else:
-#             raise ValueError()
-#         sorted_group_names = ""
-
-#         if dataset == 'cirr':
-#             # Compute CIRR results
-#             sorted_group_names, sorted_index_names, target_name = compute_cirr_results(caption, combiner, n_retrieved,
-#                                                                                     reference_name)
-#         elif dataset == "fashionIQ":
-#             # Compute fashionIQ results
-#             sorted_index_names, target_name = compute_fashionIQ_results(caption, combiner, n_retrieved, reference_name)
-
-#         else:
-#             return redirect(url_for('choice'))
-#         # jsonify the results
-#         return json.dumps(sorted_index_names.tolist())
-#         # return render_template('results.html', dataset=dataset, caption=caption, reference_name=reference_name,
-#                             #    names=sorted_index_names[:n_retrieved], target_name=target_name,
-#                             #    group_names=sorted_group_names)
 
 def download_and_get_image_name_from_base64_url(url: str, category) -> str:
     """
