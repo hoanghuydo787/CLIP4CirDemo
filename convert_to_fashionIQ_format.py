@@ -84,20 +84,23 @@ if __name__ == "__main__":
     # img_path, title, description, category
     img_path_list_origin = copy.deepcopy(img_path_list)
     # partition img_path_list by category
+    datasetTypes = ["train", "val"]
     for keys in d.keys():
         temp_list = []
         for item in img_path_list_origin:
             if item[3] == keys:
                 temp_list.append(item)
         print(keys, len(temp_list))
-
-        datasetTypes = ["train", "val"]
+        # print(temp_list)
+        # random.shuffle(temp_list)
         for datasetType in datasetTypes:
-            split_limit = int(0.6*len(temp_list))
+            split_limit = int(0.7*len(temp_list))
             if datasetType == "train":
                 img_path_list = temp_list[:split_limit]
-            else:
+            elif datasetType == "val":
                 img_path_list = temp_list[split_limit:]
+            # print(img_path_list)
+
             cap_json = []
             for i in range(len(img_path_list)):
                 for j in range(i + 1, len(img_path_list)):
@@ -111,22 +114,21 @@ if __name__ == "__main__":
                         and img_path_list[i][3] == keys and img_path_list[j][3] == keys: # same category
                         cap_json.append({"target": img_name_j, "candidate": img_name_i, "captions": ["change from " + img_path_list[i][1] + " to " + img_path_list[j][1], ""]})
             if datasetType == "train":
-                limit = 400
-            else:
-                limit = 100
+                limit = 1000
+            elif datasetType == "val":
+                limit = 200
             if len(cap_json) > limit:
                 cap_json = cap_json[:limit]
             print(len(cap_json))
 
             # dst_folder / "captions"
-            # if file not exist, create file
             if not os.path.exists(dst_folder / "captions"):
                 os.makedirs(dst_folder / "captions")
             captions_filename = "cap." + d[keys] + "." + datasetType + ".json"
             if not os.path.exists(dst_folder / "captions" / captions_filename):
                 open(dst_folder / "captions" / captions_filename, "x").close()
             with open(dst_folder / "captions" / captions_filename, "w") as f:
-                json.dump(cap_json, f)
+                f.write(json.dumps(cap_json))
 
             # dst_folder / "image_splits"
             split_json = []
@@ -142,7 +144,7 @@ if __name__ == "__main__":
             if not os.path.exists(dst_folder / "image_splits" / image_splits_filename):
                 open(dst_folder / "image_splits" / image_splits_filename, "x").close()
             with open(dst_folder / "image_splits" / image_splits_filename, "w") as f:
-                json.dump(split_json, f)
+                f.write(json.dumps(split_json))
 
             # # dst_folder / "images"
             # if not os.path.exists(dst_folder / "images"):
@@ -188,4 +190,4 @@ if __name__ == "__main__":
             if not os.path.exists(dst_folder / "tags" / tag_filename):
                 open(dst_folder / "tags" / tag_filename, "x").close()
             with open(dst_folder / "tags" / tag_filename, "w") as f:
-                json.dump(asin2attr_json, f)
+                f.write(json.dumps(asin2attr_json))
