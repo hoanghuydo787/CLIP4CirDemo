@@ -333,7 +333,6 @@ modules.xml
 
 # End of https://www.toptal.com/developers/gitignore/api/python,flask,pycharm+all
 
-fashionIQ_dataset/images/
 fashionIQ_dataset/
 fashionIQ/
 models/
