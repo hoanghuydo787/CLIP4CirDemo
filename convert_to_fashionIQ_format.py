@@ -58,9 +58,6 @@ def src_folder_to_dict_of_file_path_and_title(filepath):
 if __name__ == "__main__":
 
     # params
-    # src_folder = Path("./adidas1600_train")
-    # src_folder = Path("./adidas400_val")
-    # src_folder = Path("./addidasWithCate")
     src_folder = Path("./adidas2000_val")
 
     dst_folder = Path("./fashionIQ")
@@ -114,9 +111,9 @@ if __name__ == "__main__":
                         and img_path_list[i][3] == keys and img_path_list[j][3] == keys: # same category
                         cap_json.append({"target": img_name_j, "candidate": img_name_i, "captions": ["change from " + img_path_list[i][1] + " to " + img_path_list[j][1], ""]})
             if datasetType == "train":
-                limit = 2000
+                limit = 1000
             elif datasetType == "val":
-                limit = 500
+                limit = 200
             if len(cap_json) > limit:
                 cap_json = cap_json[:limit]
             print(len(cap_json))

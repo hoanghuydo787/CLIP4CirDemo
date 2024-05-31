@@ -1092,7 +1092,7 @@ def download_and_get_image_name_from_base64_url(url: str, category) -> str:
     Download the image from the given base64 url and return the name of the image
     :param url: url of the image
     """
-    filename = "img.jpeg"
+    filename = "img.jpg"
     url = url.replace('data:image/jpeg;base64,', '')
     url = url.replace(' ', '+')
     # print(url)
