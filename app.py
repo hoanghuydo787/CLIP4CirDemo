@@ -549,13 +549,14 @@ def _load_assets():
     global clip_preprocess
     clip_model, clip_preprocess = clip.load("RN50x4")
 
-    # if kwargs.get("clip_model_path"):
-    #     print('Trying to load the CLIP model')
-    #     clip_model_path = kwargs["clip_model_path"]
-    #     saved_state_dict = torch.load(clip_model_path, map_location=device)
-    #     clip_model.load_state_dict(saved_state_dict["CLIP"])
-    #     print('CLIP model loaded successfully')
-
+    try:
+        clip_model_path = "./models/tuned_clip_best.pt"
+        print('Trying to load the CLIP model')
+        saved_state_dict = torch.load(clip_model_path, map_location=device)
+        clip_model.load_state_dict(saved_state_dict["CLIP"])
+        print('CLIP model loaded successfully')
+    except:
+        pass
     clip_model = clip_model.eval().to(device)
 
     # global cirr_combiner
