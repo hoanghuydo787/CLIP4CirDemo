@@ -95,37 +95,38 @@ if __name__ == "__main__":
             if datasetType == "train":
                 img_path_list = temp_list[:split_limit]
             elif datasetType == "val":
-                img_path_list = temp_list[split_limit:]
+                # img_path_list = temp_list[split_limit:]
+                img_path_list = temp_list
             # print(img_path_list)
 
-            cap_json = []
-            for i in range(len(img_path_list)):
-                for j in range(i + 1, len(img_path_list)):
-                    # get img name
-                    img_name_i = os.path.basename(img_path_list[i][0]).split('/')[-1]
-                    img_name_i = img_name_i.split('.')[0]
-                    img_name_j = os.path.basename(img_path_list[j][0]).split('/')[-1]
-                    img_name_j = img_name_j.split('.')[0]
-                    # print(img_name_i)
-                    if img_path_list[i][1] != img_path_list[j][1] \
-                        and img_path_list[i][3] == keys and img_path_list[j][3] == keys: # same category
-                        cap_json.append({"target": img_name_j, "candidate": img_name_i, "captions": ["change from " + img_path_list[i][1] + " to " + img_path_list[j][1], ""]})
-            if datasetType == "train":
-                limit = 1000
-            elif datasetType == "val":
-                limit = 200
-            if len(cap_json) > limit:
-                cap_json = cap_json[:limit]
-            print(len(cap_json))
+            # cap_json = []
+            # for i in range(len(img_path_list)):
+            #     for j in range(i + 1, len(img_path_list)):
+            #         # get img name
+            #         img_name_i = os.path.basename(img_path_list[i][0]).split('/')[-1]
+            #         img_name_i = img_name_i.split('.')[0]
+            #         img_name_j = os.path.basename(img_path_list[j][0]).split('/')[-1]
+            #         img_name_j = img_name_j.split('.')[0]
+            #         # print(img_name_i)
+            #         if img_path_list[i][1] != img_path_list[j][1] \
+            #             and img_path_list[i][3] == keys and img_path_list[j][3] == keys: # same category
+            #             cap_json.append({"target": img_name_j, "candidate": img_name_i, "captions": ["change from " + img_path_list[i][1] + " to " + img_path_list[j][1], ""]})
+            # if datasetType == "train":
+            #     limit = 1000
+            # elif datasetType == "val":
+            #     limit = 200
+            # if len(cap_json) > limit:
+            #     cap_json = cap_json[:limit]
+            # print(len(cap_json))
 
-            # dst_folder / "captions"
-            if not os.path.exists(dst_folder / "captions"):
-                os.makedirs(dst_folder / "captions")
-            captions_filename = "cap." + d[keys] + "." + datasetType + ".json"
-            if not os.path.exists(dst_folder / "captions" / captions_filename):
-                open(dst_folder / "captions" / captions_filename, "x").close()
-            with open(dst_folder / "captions" / captions_filename, "w") as f:
-                f.write(json.dumps(cap_json))
+            # # dst_folder / "captions"
+            # if not os.path.exists(dst_folder / "captions"):
+            #     os.makedirs(dst_folder / "captions")
+            # captions_filename = "cap." + d[keys] + "." + datasetType + ".json"
+            # if not os.path.exists(dst_folder / "captions" / captions_filename):
+            #     open(dst_folder / "captions" / captions_filename, "x").close()
+            # with open(dst_folder / "captions" / captions_filename, "w") as f:
+            #     f.write(json.dumps(cap_json))
 
             # dst_folder / "image_splits"
             split_json = []
@@ -151,40 +152,40 @@ if __name__ == "__main__":
             #     # img_name = img_name.split('.')[0]
             #     shutil.copyfile(img_title[0], dst_folder / "images" / img_name)
 
-            # dst_folder / "tags"
-            asin2attr_json = []
-            stop_words = set(stopwords.words('english'))
-            for i in range(len(img_path_list)):
-                if img_path_list[i][3] == keys:
-                    img_name_i = os.path.basename(img_path_list[i][0]).split('/')[-1]
-                    img_name_i = img_name_i.split('.')[0]
-                    # tokenize description
-                    description = img_path_list[i][2].lower()
-                    # get substring before "product code:"
-                    description = description[:description.find("product code:")]
-                    description_tokens = nltk.word_tokenize(description)
-                    # POS tagging
-                    tagged_description_tokens = nltk.pos_tag(description_tokens)
-                    # print(tagged_description_tokens)
-                    description_tokens = []
-                    # filter to take only nouns and adjectives
-                    for tag in tagged_description_tokens:
-                        if tag[1] == 'NN' or tag[1] == 'NNS' or tag[1] == 'NNP' or tag[1] == 'NNPS' or tag[1] == 'JJ':
-                            description_tokens.append(tag[0])
-                    # print(description_tokens)
+            # # dst_folder / "tags"
+            # asin2attr_json = []
+            # stop_words = set(stopwords.words('english'))
+            # for i in range(len(img_path_list)):
+            #     if img_path_list[i][3] == keys:
+            #         img_name_i = os.path.basename(img_path_list[i][0]).split('/')[-1]
+            #         img_name_i = img_name_i.split('.')[0]
+            #         # tokenize description
+            #         description = img_path_list[i][2].lower()
+            #         # get substring before "product code:"
+            #         description = description[:description.find("product code:")]
+            #         description_tokens = nltk.word_tokenize(description)
+            #         # POS tagging
+            #         tagged_description_tokens = nltk.pos_tag(description_tokens)
+            #         # print(tagged_description_tokens)
+            #         description_tokens = []
+            #         # filter to take only nouns and adjectives
+            #         for tag in tagged_description_tokens:
+            #             if tag[1] == 'NN' or tag[1] == 'NNS' or tag[1] == 'NNP' or tag[1] == 'NNPS' or tag[1] == 'JJ':
+            #                 description_tokens.append(tag[0])
+            #         # print(description_tokens)
 
-                    # filter out stop words
-                    description_tokens = [word for word in description_tokens if word not in stop_words]
-                    # filter out punctuation
-                    description_tokens = [word for word in description_tokens if word.isalnum()]
-                    # filter out duplicate words
-                    description_tokens = list(set(description_tokens))
+            #         # filter out stop words
+            #         description_tokens = [word for word in description_tokens if word not in stop_words]
+            #         # filter out punctuation
+            #         description_tokens = [word for word in description_tokens if word.isalnum()]
+            #         # filter out duplicate words
+            #         description_tokens = list(set(description_tokens))
                     
-                    asin2attr_json.append({img_name_i : description_tokens})
-            if not os.path.exists(dst_folder / "tags"):
-                os.makedirs(dst_folder / "tags")
-            tag_filename = "asin2attr." + d[keys] + "." + datasetType + ".json"
-            if not os.path.exists(dst_folder / "tags" / tag_filename):
-                open(dst_folder / "tags" / tag_filename, "x").close()
-            with open(dst_folder / "tags" / tag_filename, "w") as f:
-                f.write(json.dumps(asin2attr_json))
+            #         asin2attr_json.append({img_name_i : description_tokens})
+            # if not os.path.exists(dst_folder / "tags"):
+            #     os.makedirs(dst_folder / "tags")
+            # tag_filename = "asin2attr." + d[keys] + "." + datasetType + ".json"
+            # if not os.path.exists(dst_folder / "tags" / tag_filename):
+            #     open(dst_folder / "tags" / tag_filename, "x").close()
+            # with open(dst_folder / "tags" / tag_filename, "w") as f:
+            #     f.write(json.dumps(asin2attr_json))

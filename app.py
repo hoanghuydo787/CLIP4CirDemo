@@ -565,7 +565,6 @@ def _load_assets():
 
     global fashionIQ_combiner
     fashionIQ_combiner = torch.hub.load(server_base_path, source='local', model='combiner', dataset='fashionIQ')
-    print(type(fashionIQ_combiner))
     fashionIQ_combiner = torch.jit.script(fashionIQ_combiner).type(data_type).to(device).eval()
 
 
