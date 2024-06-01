@@ -35,6 +35,7 @@ def combiner(dataset: str) -> nn.Module:
         # state_dict = torch.hub.load_state_dict_from_url(FASHIONIQ_URL, progress=True, file_name='fashionIQ_combiner',
                                                         # map_location=device)
         state_dict = torch.load(FASHIONIQ_URL, map_location=device)
+        print(FASHIONIQ_URL)
     else:
         raise ValueError("Dataset should be in ['cirr', 'fashionIQ'] ")
     model.load_state_dict(state_dict['Combiner'])
