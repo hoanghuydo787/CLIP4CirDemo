@@ -548,6 +548,14 @@ def _load_assets():
     global clip_model
     global clip_preprocess
     clip_model, clip_preprocess = clip.load("RN50x4")
+
+    # if kwargs.get("clip_model_path"):
+    #     print('Trying to load the CLIP model')
+    #     clip_model_path = kwargs["clip_model_path"]
+    #     saved_state_dict = torch.load(clip_model_path, map_location=device)
+    #     clip_model.load_state_dict(saved_state_dict["CLIP"])
+    #     print('CLIP model loaded successfully')
+
     clip_model = clip_model.eval().to(device)
 
     # global cirr_combiner
@@ -556,6 +564,7 @@ def _load_assets():
 
     global fashionIQ_combiner
     fashionIQ_combiner = torch.hub.load(server_base_path, source='local', model='combiner', dataset='fashionIQ')
+    print(type(fashionIQ_combiner))
     fashionIQ_combiner = torch.jit.script(fashionIQ_combiner).type(data_type).to(device).eval()
 
 
