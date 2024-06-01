@@ -11,6 +11,8 @@ def extract_category_from_caption(caption: str) -> str:
     choices = ['T-Shirts & Polos', 'Shorts', 'SportSwears', 'Jackets', 'T-Shirts and Tops', 'Dresses', 'Skirts', 'Leggings', 'Jerseys', 'Tracksuit', 'Hoodies', 'Pants', 'Tights']
     res = []
     stop_words = set(stopwords.words('english'))
+    # print(stop_words)
+    caption = caption.lower()
     for word in nltk.word_tokenize(caption):
         if word not in stop_words and \
         word.isalnum() and \
@@ -24,5 +26,7 @@ def extract_category_from_caption(caption: str) -> str:
     return d[res[0][0]]
 
 # sentence = "i want it to be red and sleeveless with adidas logo on it"
-sentence = "i want a pink top for women"
+sentence = "I want a pink top for women"
+# sentence = "purpl dress with long sleeve"
+# sentence = "I want a jacket with darker color"
 print(extract_category_from_caption(sentence))
