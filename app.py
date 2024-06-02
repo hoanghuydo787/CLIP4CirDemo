@@ -414,6 +414,13 @@ def compute_fashionIQ_results(caption: str, combiner: Combiner, n_retrieved: int
     # Sort the results and get the top 50
     index_features = F.normalize(index_features)
     cos_similarity = index_features @ predicted_features.T
+    # Check the size of cos_similarity tensor
+    num_elements = cos_similarity.size(0)
+
+    # Ensure n_retrieved does not exceed the number of elements
+    if n_retrieved > num_elements:
+        n_retrieved = num_elements
+    
     sorted_indices = torch.topk(cos_similarity, n_retrieved, largest=True).indices.cpu()
     sorted_index_names = np.array(index_names)[sorted_indices].flatten()
 
