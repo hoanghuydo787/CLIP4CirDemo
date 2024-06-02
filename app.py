@@ -196,10 +196,8 @@ def extract_category_from_caption(caption: str) -> str:
     stop_words = set(stopwords.words('english'))
     caption = caption.lower()
     for word in nltk.word_tokenize(caption):
-        word = word.lower()
         if word not in stop_words and \
-        word.isalnum() and \
-        process.extractOne(word, choices)[1] > 80:
+        process.extractOne(word, choices)[1] > 75:
             res.append(process.extractOne(word, choices))
     if len(res) == 0:
         return 'general'
